@@ -20,6 +20,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const Payment = lazy(() => import("./pages/Payment"));
 const AddLand = lazy(() => import("./pages/AddLand"));
 const Investers = lazy(() => import("./pages/investers")); // ✅ matches file name
+const Otp = lazy(() => import("./pages/otp")); // ✅ added OTP page
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/search" element={<Search />} />
             <Route path="/result" element={<Result />} />
+            <Route path="/otp" element={<Otp />} /> {/* ✅ added OTP route */}
 
             {/* Dynamic routes */}
             <Route path="/land/:id" element={<LandDetails />} />
@@ -53,7 +55,7 @@ const App = () => (
             <Route path="/payment/:id" element={<Payment />} />
 
             {/* Investor-specific */}
-            <Route path="/investers" element={<Investers />} /> {/* ✅ fixed */}
+            <Route path="/investers" element={<Investers />} />
 
             {/* Landowner-specific */}
             <Route path="/add-land" element={<AddLand />} />

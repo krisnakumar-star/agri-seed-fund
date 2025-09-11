@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sprout, User, Mail, Lock, Phone, IdCard } from "lucide-react";
+import { Sprout, User, Lock, Phone, IdCard } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabaseClient";
 
 const Signup = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const defaultRole = searchParams.get("role") || "farmer";
 
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     password: "",
     confirmPassword: "",
     phone: "",
@@ -41,6 +41,26 @@ const Signup = () => {
     }
   };
 
+  // ✅ Send OTP via Supabase (SMS)
+  const verifyPhone = async () => {
+    if (!/^\+?\d{10,15}$/.test(formData.phone)) {
+      alert("❌ Enter a valid phone number with country code (e.g., +91XXXXXXXXXX)");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: formData.phone,
+    });
+
+    if (error) {
+      alert("❌ Failed to send OTP: " + error.message);
+      return;
+    }
+
+    alert("📱 OTP sent to your phone!");
+    navigate("/otp?phone=" + encodeURIComponent(formData.phone)); // pass phone to OTP page
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -54,53 +74,7 @@ const Signup = () => {
       return;
     }
 
-    const role = defaultRole;
-
-    // Step 1: Supabase Auth Signup
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          name: formData.name,
-          phone: formData.phone,
-          role,
-          aadhaar: formData.aadhaar,
-          location: formData.location,
-          company: formData.company,
-          investment_range: formData.investmentRange,
-          farm_size: formData.farmSize,
-          crop_types: formData.cropTypes,
-        },
-      },
-    });
-
-    if (error) {
-      alert("Signup failed: " + error.message);
-      return;
-    }
-
-    // Step 2: Insert into profiles table
-    if (data.user) {
-      const { error: insertError } = await supabase.from("profiles").insert({
-        id: data.user.id,
-        name: formData.name,
-        phone: formData.phone,
-        role,
-        aadhaar: formData.aadhaar,
-        location: formData.location,
-        company: formData.company,
-        investment_range: formData.investmentRange,
-        farm_size: formData.farmSize,
-        crop_types: formData.cropTypes,
-      });
-
-      if (insertError) {
-        console.error("Error saving profile:", insertError.message);
-      }
-    }
-
-    alert("Signup successful! Please verify your email.");
+    alert("📱 Please verify phone with OTP to complete signup.");
   };
 
   return (
@@ -123,10 +97,16 @@ const Signup = () => {
           <CardContent>
             <Tabs defaultValue={defaultRole} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6 rounded-xl border border-gray-200 shadow-sm">
-                <TabsTrigger value="farmer" className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-lg py-2 font-semibold">
+                <TabsTrigger
+                  value="farmer"
+                  className="data-[state=active]:bg-green-600 data-[state=active]:text-white text-lg py-2 font-semibold"
+                >
                   Farmer
                 </TabsTrigger>
-                <TabsTrigger value="investor" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-lg py-2 font-semibold">
+                <TabsTrigger
+                  value="investor"
+                  className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-lg py-2 font-semibold"
+                >
                   Investor
                 </TabsTrigger>
               </TabsList>
@@ -167,32 +147,21 @@ const Signup = () => {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        className="pl-10 font-medium"
-                        required
-                      />
-                    </div>
-                  </div>
-
+                  {/* ✅ Phone with OTP */}
                   <div className="space-y-2">
                     <Label>Phone Number</Label>
-                    <div className="relative">
+                    <div className="relative flex">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
-                        placeholder="Enter your phone number"
+                        placeholder="+91XXXXXXXXXX"
                         value={formData.phone}
                         onChange={(e) => handleInputChange("phone", e.target.value)}
                         className="pl-10 font-medium"
                         required
                       />
+                      <Button type="button" onClick={verifyPhone} variant="outline" className="ml-2">
+                        Verify
+                      </Button>
                     </div>
                   </div>
 
